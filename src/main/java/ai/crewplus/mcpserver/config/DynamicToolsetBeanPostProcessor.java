@@ -1,5 +1,6 @@
 package ai.crewplus.mcpserver.config;
 
+import ai.crewplus.mcpserver.annotation.DynamicToolset;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -9,28 +10,25 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * BeanPostProcessor to prevent tool beans from being registered at startup.
+ * BeanPostProcessor to prevent @DynamicToolset annotated beans from being
+ * registered as tools at startup.
  * 
- * This processor intercepts beans with @McpTool methods and prevents them
- * from being scanned by Spring AI MCP Server at startup time.
- * Tools will be discovered and registered dynamically at connection time instead.
- * 
- * IMPORTANT: This prevents startup-time tool registration by filtering out
- * tool beans. Tools are created dynamically by InstanceToolManager when needed.
+ * This processor ensures that tools annotated with @DynamicToolset are NOT
+ * scanned and registered by Spring AI MCP Server at startup. Instead, they
+ * will be discovered and registered dynamically at connection time via
+ * DynamicToolsetRegistry.
  */
 @Component
-public class DynamicToolFilter implements BeanPostProcessor {
+public class DynamicToolsetBeanPostProcessor implements BeanPostProcessor {
 
-    /**
-     * Filter out tool beans to prevent startup-time registration.
-     * Return null for tool beans to prevent them from being registered.
-     */
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        // Check if this is a tool bean (has @McpTool methods)
-        if (hasMcpToolMethods(bean)) {
-            // Don't prevent initialization, but we'll track it
-            // The actual prevention happens by not creating these beans in the first place
+        // Check if bean has @DynamicToolset annotation
+        DynamicToolset annotation = AnnotationUtils.findAnnotation(bean.getClass(), DynamicToolset.class);
+        if (annotation != null && hasMcpToolMethods(bean)) {
+            // This bean should be discovered dynamically, not at startup
+            // We'll return the bean as-is, but Spring AI MCP Server should not scan it
+            // because it's not a @Service or @Component (unless explicitly annotated)
             return bean;
         }
         return bean;

@@ -1,17 +1,25 @@
 package ai.crewplus.mcpserver.tool;
 
+import ai.crewplus.mcpserver.annotation.DynamicToolset;
 import ai.crewplus.mcpserver.service.InstanceContext;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 
 /**
  * Example tools for demonstration.
- * These tools check the instance parameter before execution.
  * 
- * Note: This class is NOT annotated with @Service to prevent Spring AI MCP Server
- * from auto-scanning and registering all @McpTool methods at startup.
- * Tools will be registered dynamically via McpServerConfig based on instance parameter.
+ * This tool class is annotated with @DynamicToolset to enable dynamic discovery.
+ * Tools will NOT be registered at startup, but will be discovered and registered
+ * dynamically at connection time when the toolset parameter matches.
+ * 
+ * @DynamicToolset annotation enables true dynamic discovery:
+ * - Tools are NOT scanned at startup
+ * - Tools are discovered and registered at connection time
+ * - Only tools matching the toolset parameter are registered
  */
+@DynamicToolset(value = {"example-tools", "example1", "instance1"}, 
+                name = "Example Tools",
+                description = "Basic example tools: calculator, greeting, getCurrentTime")
 public class ExampleTools {
 
     private InstanceContext instanceContext;
@@ -21,36 +29,41 @@ public class ExampleTools {
     }
 
     /**
-     * Check if this tool should be available for the current instance.
+     * Check if this tool should be available for the current instance/toolset.
      */
     private boolean isToolAvailable(String toolName) {
         if (instanceContext == null) {
             return true; // If no context, allow all tools
         }
         
-        String instance = instanceContext.getCurrentInstance();
-        if (instance == null) {
-            instance = "default";
+        String instanceOrToolset = instanceContext.getCurrentInstance();
+        if (instanceOrToolset == null) {
+            instanceOrToolset = "default";
         }
         
-        String instanceKey = instance.toLowerCase();
+        String key = instanceOrToolset.toLowerCase();
         
-        switch (instanceKey) {
+        switch (key) {
             case "example1":
             case "instance1":
+            case "example-tools":
                 return toolName.equals("calculator") || 
                        toolName.equals("greeting") || 
                        toolName.equals("getCurrentTime");
             case "example2":
             case "instance2":
+            case "example2-tools":
                 return false; // Example2Tools only
             case "all":
             case "both":
                 return true;
             default:
-                return toolName.equals("calculator") || 
-                       toolName.equals("greeting") || 
-                       toolName.equals("getCurrentTime");
+                // For unknown toolsets, return false to prevent tool availability
+                // Only allow if explicitly matches example-tools
+                return key.equals("example-tools") && 
+                       (toolName.equals("calculator") || 
+                        toolName.equals("greeting") || 
+                        toolName.equals("getCurrentTime"));
         }
     }
 
