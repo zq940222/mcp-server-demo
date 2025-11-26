@@ -50,22 +50,18 @@ public class McpHub {
         // Check if instance already exists
         McpInstance instance = instances.get(toolset);
         if (instance != null) {
-            log.info("✅ Found existing cached instance: {} ({} tools)", toolset, instance.getToolCount());
             return instance;
         }
 
         // Try to load instance dynamically
-        log.info("🔧 Loading instance dynamically for toolset: {}", toolset);
         instance = instanceLoader.loadInstance(toolset);
         
         if (instance != null) {
             instances.put(toolset, instance);
-            log.info("✅ Successfully loaded and cached instance: {} ({} tools)", 
-                    toolset, instance.getToolCount());
             return instance;
         }
 
-        log.warn("⚠️ Could not load instance for toolset: {}, returning default", toolset);
+        log.warn("Could not load instance for toolset: {}, returning default", toolset);
         return getDefaultInstance();
     }
 
@@ -74,7 +70,6 @@ public class McpHub {
      */
     public McpInstance getDefaultInstance() {
         return instances.computeIfAbsent("default", key -> {
-            log.info("Creating default instance");
             return new McpInstance("default", "Default Instance", 
                     "Default instance with no tools", Collections.emptyList());
         });
@@ -85,8 +80,6 @@ public class McpHub {
      */
     public void registerInstance(McpInstance instance) {
         instances.put(instance.getId(), instance);
-        log.info("✅ Registered instance: {} ({} tools)", 
-                instance.getId(), instance.getToolCount());
     }
 
     /**
@@ -107,10 +100,7 @@ public class McpHub {
      * Remove an instance.
      */
     public void removeInstance(String toolset) {
-        McpInstance removed = instances.remove(toolset);
-        if (removed != null) {
-            log.info("✅ Removed instance: {}", toolset);
-        }
+        instances.remove(toolset);
     }
 
     /**
@@ -118,7 +108,6 @@ public class McpHub {
      */
     public void clearAllInstances() {
         instances.clear();
-        log.info("✅ Cleared all instances");
     }
 
     /**

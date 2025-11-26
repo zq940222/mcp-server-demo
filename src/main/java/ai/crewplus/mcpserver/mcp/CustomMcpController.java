@@ -59,8 +59,6 @@ public class CustomMcpController {
                 toolset = "default";
             }
             
-            log.info("🔧 MCP Initialize request for toolset: {}", toolset);
-            
             // Set toolset in context
             instanceContext.setCurrentInstance(toolset);
             
@@ -105,8 +103,6 @@ public class CustomMcpController {
                 toolset = "default";
             }
             
-            log.info("📋 MCP tools/list request for toolset: {}", toolset);
-            
             List<Map<String, Object>> tools = mcpServer.listTools(toolset);
             
             Map<String, Object> response = new HashMap<>();
@@ -144,8 +140,6 @@ public class CustomMcpController {
                 arguments = new HashMap<>();
             }
             
-            log.info("🔧 MCP tools/call request: tool={}, toolset={}", toolName, toolset);
-            
             try {
                 Object result = mcpServer.callTool(toolset, toolName, arguments);
                 
@@ -157,7 +151,7 @@ public class CustomMcpController {
                 
                 return ResponseEntity.ok(response);
             } catch (Exception e) {
-                log.error("❌ Tool execution failed: {}", e.getMessage(), e);
+                log.error("Tool execution failed: {}", e.getMessage(), e);
                 
                 Map<String, Object> response = new HashMap<>();
                 response.put("isError", true);
@@ -203,13 +197,14 @@ public class CustomMcpController {
                 params = new HashMap<>();
             }
             
-            log.info("📨 JSON-RPC request: method={}, toolset={}", method, toolset);
-            
             Map<String, Object> response = new HashMap<>();
             response.put("jsonrpc", "2.0");
             response.put("id", id);
             
             try {
+                // Check if this is a notification (no id field means it's a notification)
+                boolean isNotification = id == null;
+                
                 Object result = null;
                 
                 switch (method) {
@@ -222,13 +217,25 @@ public class CustomMcpController {
                     case "tools/call":
                         result = handleToolsCall(toolset, params);
                         break;
+                    case "notifications/initialized":
+                        // This is a notification, no response needed
+                        if (isNotification) {
+                            return ResponseEntity.ok().build();
+                        }
+                        result = new HashMap<>(); // Empty result for requests
+                        break;
                     default:
                         throw new IllegalArgumentException("Unknown method: " + method);
                 }
                 
+                // For notifications, don't send response
+                if (isNotification && method.startsWith("notifications/")) {
+                    return ResponseEntity.ok().build();
+                }
+                
                 response.put("result", result);
             } catch (Exception e) {
-                log.error("❌ JSON-RPC error: {}", e.getMessage(), e);
+                log.error("JSON-RPC error: {}", e.getMessage(), e);
                 
                 Map<String, Object> error = new HashMap<>();
                 error.put("code", -32603);

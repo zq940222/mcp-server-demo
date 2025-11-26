@@ -41,23 +41,20 @@ public class CustomMcpServer {
         if (toolCache.containsKey(toolset)) {
             List<ToolDefinition> cached = toolCache.get(toolset);
             if (cached != null && !cached.isEmpty()) {
-                log.debug("✅ Toolset {} already initialized with {} tools", toolset, cached.size());
                 return;
             }
         }
         
-        log.info("🔧 Initializing CustomMcpServer for toolset: {}", toolset);
-        
         // Get instance from hub
         McpInstance instance = mcpHub.getInstance(toolset);
         if (instance == null) {
-            log.warn("⚠️ McpHub.getInstance() returned null for toolset: {}", toolset);
+            log.warn("McpHub.getInstance() returned null for toolset: {}", toolset);
             toolCache.put(toolset, Collections.emptyList());
             return;
         }
         
         if (!instance.hasTools()) {
-            log.warn("⚠️ Instance found but has no tools for toolset: {}", toolset);
+            log.warn("Instance found but has no tools for toolset: {}", toolset);
             toolCache.put(toolset, Collections.emptyList());
             return;
         }
@@ -65,16 +62,6 @@ public class CustomMcpServer {
         // Extract tool definitions from tool objects
         List<ToolDefinition> tools = extractToolDefinitions(instance.getTools());
         toolCache.put(toolset, tools);
-        
-        log.info("✅ Initialized CustomMcpServer with {} tools for toolset: {}", 
-                tools.size(), toolset);
-        
-        // Log tool names for debugging
-        if (!tools.isEmpty()) {
-            log.info("📋 Available tools: {}", tools.stream()
-                    .map(ToolDefinition::getName)
-                    .collect(java.util.stream.Collectors.toList()));
-        }
     }
 
     /**
@@ -92,7 +79,6 @@ public class CustomMcpServer {
             result.add(toolMap);
         }
         
-        log.debug("📋 Returning {} tools for toolset: {}", result.size(), toolset);
         return result;
     }
 
@@ -100,41 +86,30 @@ public class CustomMcpServer {
      * Call a tool by name.
      */
     public Object callTool(String toolset, String toolName, Map<String, Object> arguments) {
-        log.info("🔧 Calling tool: {} for toolset: {} with arguments: {}", 
-                toolName, toolset, arguments);
-        
         // Ensure toolset is initialized
         if (!toolCache.containsKey(toolset)) {
-            log.info("🔧 Toolset {} not initialized, initializing now...", toolset);
             initialize(toolset);
         }
         
         List<ToolDefinition> tools = toolCache.getOrDefault(toolset, Collections.emptyList());
         
         if (tools.isEmpty()) {
-            log.warn("⚠️ No tools found for toolset: {}", toolset);
+            log.warn("No tools found for toolset: {}", toolset);
             throw new IllegalArgumentException("No tools available for toolset: " + toolset);
         }
         
         for (ToolDefinition tool : tools) {
             if (tool.getName().equals(toolName)) {
                 try {
-                    log.info("✅ Found tool: {}, invoking...", toolName);
-                    Object result = tool.invoke(arguments);
-                    log.info("✅ Tool {} executed successfully", toolName);
-                    return result;
+                    return tool.invoke(arguments);
                 } catch (Exception e) {
-                    log.error("❌ Failed to invoke tool {}: {}", toolName, e.getMessage(), e);
+                    log.error("Failed to invoke tool {}: {}", toolName, e.getMessage(), e);
                     throw new RuntimeException("Tool execution failed: " + e.getMessage(), e);
                 }
             }
         }
         
-        log.warn("⚠️ Tool {} not found in toolset: {}", toolName, toolset);
-        log.info("📋 Available tools: {}", tools.stream()
-                .map(ToolDefinition::getName)
-                .collect(java.util.stream.Collectors.toList()));
-        
+        log.warn("Tool {} not found in toolset: {}", toolName, toolset);
         throw new IllegalArgumentException("Tool not found: " + toolName);
     }
 

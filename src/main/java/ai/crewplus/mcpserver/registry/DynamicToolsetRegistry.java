@@ -71,9 +71,6 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
         
         // Also scan package for annotated classes
         scanPackageForDynamicToolsets("ai.crewplus.mcpserver.tool");
-        
-        log.info("✅ Scanned dynamic toolsets. Found {} toolsets: {}", 
-                toolsetClasses.size(), toolsetClasses.keySet());
     }
 
     /**
@@ -115,7 +112,6 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
         for (String toolset : toolsets) {
             String normalizedToolset = toolset.trim().toLowerCase();
             toolsetClasses.computeIfAbsent(normalizedToolset, k -> new HashSet<>()).add(toolClass);
-            log.debug("Registered tool class {} for toolset: {}", toolClass.getSimpleName(), normalizedToolset);
         }
     }
 
@@ -142,7 +138,7 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
         // Get tool classes for this toolset
         Set<Class<?>> toolClasses = toolsetClasses.get(normalizedToolset);
         if (toolClasses == null || toolClasses.isEmpty()) {
-            log.warn("⚠️ No tools found for toolset: {}", normalizedToolset);
+            log.warn("No tools found for toolset: {}", normalizedToolset);
             return Collections.emptyList();
         }
         
@@ -160,9 +156,6 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
                     String beanName = generateBeanName(normalizedToolset, toolClass);
                     registerToolBean(beanName, instance, toolClass);
                     beanNames.add(beanName);
-                    
-                    log.debug("✅ Created and registered tool instance: {} for toolset: {}", 
-                            toolClass.getSimpleName(), normalizedToolset);
                 }
             } catch (Exception e) {
                 log.error("Failed to create tool instance for {}: {}", toolClass.getName(), e.getMessage(), e);
@@ -172,34 +165,6 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
         // Cache instances
         toolsetInstances.put(normalizedToolset, instances);
         registeredBeans.put(normalizedToolset, beanNames);
-        
-        log.info("🔧 Dynamically discovered {} tools for toolset: {}", instances.size(), normalizedToolset);
-        
-        // Debug: Log registered beans
-        if (log.isDebugEnabled()) {
-            ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
-            String[] allBeans = beanFactory.getBeanDefinitionNames();
-            log.debug("Total beans in context: {}", allBeans.length);
-            for (String beanName : beanNames) {
-                if (beanFactory.containsBean(beanName)) {
-                    Object bean = beanFactory.getBean(beanName);
-                    log.debug("✅ Tool bean '{}' is registered: {}", beanName, bean.getClass().getSimpleName());
-                    
-                    // Check for @McpTool methods
-                    java.lang.reflect.Method[] methods = bean.getClass().getMethods();
-                    int toolMethodCount = 0;
-                    for (java.lang.reflect.Method method : methods) {
-                        if (AnnotationUtils.findAnnotation(method, org.springaicommunity.mcp.annotation.McpTool.class) != null) {
-                            toolMethodCount++;
-                            log.debug("  - Found @McpTool method: {}", method.getName());
-                        }
-                    }
-                    log.debug("  - Total @McpTool methods: {}", toolMethodCount);
-                } else {
-                    log.warn("⚠️ Tool bean '{}' is NOT registered!", beanName);
-                }
-            }
-        }
         
         return instances;
     }
@@ -253,11 +218,9 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
                 
                 // Register BeanDefinition first
                 defaultBeanFactory.registerBeanDefinition(beanName, beanDefinition);
-                log.debug("✅ Registered BeanDefinition: {}", beanName);
                 
                 // Then register singleton instance
                 beanFactory.registerSingleton(beanName, instance);
-                log.debug("✅ Registered singleton instance: {}", beanName);
                 
                 // Also register with standard naming convention (first letter lowercase)
                 String standardBeanName = Character.toLowerCase(toolClass.getSimpleName().charAt(0)) + 
@@ -265,12 +228,10 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
                 if (!standardBeanName.equals(beanName) && !beanFactory.containsBean(standardBeanName)) {
                     defaultBeanFactory.registerBeanDefinition(standardBeanName, beanDefinition);
                     beanFactory.registerSingleton(standardBeanName, instance);
-                    log.debug("✅ Also registered as standard name: {}", standardBeanName);
                 }
             } else {
                 // Fallback: just register singleton
                 beanFactory.registerSingleton(beanName, instance);
-                log.debug("✅ Registered singleton (fallback): {}", beanName);
             }
         } catch (Exception e) {
             log.error("Failed to register tool bean {}: {}", beanName, e.getMessage(), e);

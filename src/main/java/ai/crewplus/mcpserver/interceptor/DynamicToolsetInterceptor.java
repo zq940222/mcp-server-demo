@@ -1,8 +1,6 @@
 package ai.crewplus.mcpserver.interceptor;
 
 import ai.crewplus.mcpserver.service.InstanceContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -21,10 +19,8 @@ import reactor.core.publisher.Mono;
  * The CustomMcpServer will use this toolset to dynamically load and provide tools.
  */
 @Component
-@Order(0) // Execute before InstanceToolInterceptor
+@Order(0)
 public class DynamicToolsetInterceptor implements WebFilter {
-
-    private static final Logger log = LoggerFactory.getLogger(DynamicToolsetInterceptor.class);
     
     private static final String HEADER_TOOLSET = "X-Toolset";
     private static final String QUERY_PARAM_TOOLSET = "toolset";
@@ -43,11 +39,7 @@ public class DynamicToolsetInterceptor implements WebFilter {
         String toolset = extractToolset(exchange);
         
         if (toolset != null && !toolset.isEmpty()) {
-            log.debug("🔍 Setting toolset in context: {}", toolset);
-            // Set toolset in ThreadLocal for CustomMcpServer to use
             instanceContext.setCurrentInstance(toolset);
-        } else {
-            log.debug("No toolset specified in request");
         }
 
         return chain.filter(exchange)

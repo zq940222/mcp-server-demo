@@ -40,8 +40,6 @@ public class InstanceLoader {
      * Initialize metadata cache by scanning for @DynamicToolset annotations.
      */
     private void initializeMetadataCache() {
-        log.info("🔍 Scanning for @DynamicToolset annotations...");
-        
         // Get all beans and check for @DynamicToolset annotation
         String[] beanNames = applicationContext.getBeanDefinitionNames();
         for (String beanName : beanNames) {
@@ -60,8 +58,6 @@ public class InstanceLoader {
 
         // Also scan package for classes (in case they're not Spring beans)
         scanPackageForDynamicToolsets();
-
-        log.info("✅ Found {} toolset definitions", instanceMetadataCache.size());
     }
 
     /**
@@ -77,7 +73,6 @@ public class InstanceLoader {
         for (String toolsetId : toolsetIds) {
             InstanceMetadata metadata = new InstanceMetadata(toolsetId, name, description, toolClass);
             instanceMetadataCache.put(toolsetId, metadata);
-            log.debug("✅ Registered toolset metadata: {} -> {}", toolsetId, toolClass.getSimpleName());
         }
     }
 
@@ -103,8 +98,6 @@ public class InstanceLoader {
                     DynamicToolset annotation = AnnotationUtils.findAnnotation(clazz, DynamicToolset.class);
                     if (annotation != null) {
                         registerInstanceMetadata(annotation, clazz);
-                        log.debug("✅ Scanned and registered toolset from package: {} -> {}", 
-                                clazz.getSimpleName(), java.util.Arrays.toString(annotation.value()));
                     }
                 } catch (ClassNotFoundException e) {
                     log.debug("Failed to load class {}: {}", candidate.getBeanClassName(), e.getMessage());
@@ -126,7 +119,7 @@ public class InstanceLoader {
             // Get metadata for this toolset
             InstanceMetadata metadata = instanceMetadataCache.get(toolset);
             if (metadata == null) {
-                log.warn("⚠️ No metadata found for toolset: {}", toolset);
+                log.warn("No metadata found for toolset: {}", toolset);
                 return null;
             }
 
@@ -134,23 +127,20 @@ public class InstanceLoader {
             List<Object> tools = dynamicToolsetRegistry.getToolsForToolset(toolset);
             
             if (tools.isEmpty()) {
-                log.warn("⚠️ No tools found for toolset: {}", toolset);
+                log.warn("No tools found for toolset: {}", toolset);
                 return null;
             }
 
             // Create instance
-            McpInstance instance = new McpInstance(
+            return new McpInstance(
                     toolset,
                     metadata.getName(),
                     metadata.getDescription(),
                     tools
             );
 
-            log.info("✅ Loaded instance: {} ({} tools)", toolset, tools.size());
-            return instance;
-
         } catch (Exception e) {
-            log.error("❌ Failed to load instance for toolset {}: {}", toolset, e.getMessage(), e);
+            log.error("Failed to load instance for toolset {}: {}", toolset, e.getMessage(), e);
             return null;
         }
     }
