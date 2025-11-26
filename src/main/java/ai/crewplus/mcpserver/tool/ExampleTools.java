@@ -1,7 +1,6 @@
 package ai.crewplus.mcpserver.tool;
 
 import ai.crewplus.mcpserver.annotation.DynamicToolset;
-import ai.crewplus.mcpserver.service.InstanceContext;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 
@@ -22,51 +21,6 @@ import org.springaicommunity.mcp.annotation.McpToolParam;
                 description = "Basic example tools: calculator, greeting, getCurrentTime")
 public class ExampleTools {
 
-    private InstanceContext instanceContext;
-
-    public void setInstanceContext(InstanceContext instanceContext) {
-        this.instanceContext = instanceContext;
-    }
-
-    /**
-     * Check if this tool should be available for the current instance/toolset.
-     */
-    private boolean isToolAvailable(String toolName) {
-        if (instanceContext == null) {
-            return true; // If no context, allow all tools
-        }
-        
-        String instanceOrToolset = instanceContext.getCurrentInstance();
-        if (instanceOrToolset == null) {
-            instanceOrToolset = "default";
-        }
-        
-        String key = instanceOrToolset.toLowerCase();
-        
-        switch (key) {
-            case "example1":
-            case "instance1":
-            case "example-tools":
-                return toolName.equals("calculator") || 
-                       toolName.equals("greeting") || 
-                       toolName.equals("getCurrentTime");
-            case "example2":
-            case "instance2":
-            case "example2-tools":
-                return false; // Example2Tools only
-            case "all":
-            case "both":
-                return true;
-            default:
-                // For unknown toolsets, return false to prevent tool availability
-                // Only allow if explicitly matches example-tools
-                return key.equals("example-tools") && 
-                       (toolName.equals("calculator") || 
-                        toolName.equals("greeting") || 
-                        toolName.equals("getCurrentTime"));
-        }
-    }
-
     /**
      * Calculator tool that performs basic arithmetic operations.
      *
@@ -80,10 +34,6 @@ public class ExampleTools {
             @McpToolParam(description = "The operation to perform (add, subtract, multiply, divide)", required = true) String operation,
             @McpToolParam(description = "First number", required = true) double num1,
             @McpToolParam(description = "Second number", required = true) double num2) {
-        if (!isToolAvailable("calculator")) {
-            return "Error: This tool is not available for the current instance.";
-        }
-        
         try {
             double result;
             switch (operation.toLowerCase()) {
@@ -120,10 +70,6 @@ public class ExampleTools {
     @McpTool(description = "Greet users with a personalized message")
     public String greeting(
             @McpToolParam(description = "User name", required = false) String name) {
-        if (!isToolAvailable("greeting")) {
-            return "Error: This tool is not available for the current instance.";
-        }
-        
         if (name == null || name.trim().isEmpty()) {
             return "Hello, anonymous user!";
         }
@@ -137,10 +83,6 @@ public class ExampleTools {
      */
     @McpTool(description = "Get current date and time")
     public String getCurrentTime() {
-        if (!isToolAvailable("getCurrentTime")) {
-            return "Error: This tool is not available for the current instance.";
-        }
-        
         return "Current time: " + java.time.LocalDateTime.now().toString();
     }
 }

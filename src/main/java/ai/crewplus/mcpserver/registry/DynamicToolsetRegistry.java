@@ -173,20 +173,7 @@ public class DynamicToolsetRegistry implements ApplicationContextAware {
      * Create a tool instance.
      */
     private Object createToolInstance(Class<?> toolClass) throws Exception {
-        Object instance = toolClass.getDeclaredConstructor().newInstance();
-        
-        // Try to inject InstanceContext if method exists
-        try {
-            java.lang.reflect.Method setContextMethod = toolClass.getMethod("setInstanceContext", 
-                    ai.crewplus.mcpserver.service.InstanceContext.class);
-            ai.crewplus.mcpserver.service.InstanceContext instanceContext = 
-                    applicationContext.getBean(ai.crewplus.mcpserver.service.InstanceContext.class);
-            setContextMethod.invoke(instance, instanceContext);
-        } catch (NoSuchMethodException e) {
-            // Method doesn't exist, that's okay
-        }
-        
-        return instance;
+        return toolClass.getDeclaredConstructor().newInstance();
     }
 
     /**
